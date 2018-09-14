@@ -12,6 +12,8 @@
 #include"obstacle.h"
 #include"modifydialog.h"
 #include"robot.h"
+#include"map.h"
+#include"common.h"
 
 using std::vector;
 
@@ -65,6 +67,7 @@ public:
     double scale;
 
     Object putObject;
+    QPixmap origin_pixmap;
     QPixmap pixmap;
     QSize size;
 
@@ -90,11 +93,14 @@ private:
     vector<QPoint> movePathVec;
     int path_index;
     QTimer *timer;
+    Map* map;
+    RotateMat rotateMat;
+
+
 
     int isPointInPolygon(QPointF);
     void obstacleSelected(vector<Obstacle>, vector<int>);
     bool isMouseInDrawArea(QPointF);
-//    void test();
 
 signals:
 

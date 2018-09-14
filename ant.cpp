@@ -7,12 +7,13 @@
 #include <time.h>
 #include<vector>
 
+
 using namespace std;
 
 unsigned seed=(unsigned)time(0);//原型：void srand(unsigned seed);
 
 #define ANT_NUM 50   //蚁群数量
-#define TMAC 30   //迭代最大次数
+#define TMAC 20   //迭代最大次数
 #define ROU 0.5     //误差大小
 #define ALPHA 1     // 信息素重要程度的参数
 #define BETA 50     // 启发式因子重要程度的参数
@@ -139,14 +140,14 @@ struct Ant
     //蚂蚁进行搜索一次
     void Search()
     {
-        cout << "ant search" << endl;
+//        cout << "ant search" << endl;
         Init();
         //如果蚂蚁去过的城市数量小于城市数量，就继续移动
         while(moved_cnt < vertex_count - visitedVertexCount)
         {
             Move();
         }
-        cout << "move end" << endl;
+//        cout << "move end" << endl;
         //蚂蚁到达终点后返回起始点的距离
         //        length += dis[Path[vertex_count-1]][Path[0]];
     }
@@ -258,12 +259,14 @@ vector<int> makePathByAnt(double** graph, bool vis[], int curIndex, int count)
         }
     }
 
-    cout << "print path" << endl;
+    cout << "print path" << " " << visitedVertexCount <<  endl;
 
     vertex_count = count;
     curVertexIndex = curIndex;
 
     vector<int> vec;
+    if(vertex_count <= visitedVertexCount + 1)
+        return vec;
     srand(seed);
     TSP tsp;
     //初始化蚁群

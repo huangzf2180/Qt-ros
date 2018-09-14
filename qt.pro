@@ -23,6 +23,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
+INCLUDEPATH += /opt/ros/kinetic/include \
+               /home/sky/space/opencv-3.4.1/include/opencv \
+               /home/sky/space/opencv-3.4.1/include/opencv2 \
+               /home/sky/space/opencv-3.4.1/include
+
+DEPENDPATH +=   /opt/ros/kinetic/include
+LIBS += -L/opt/ros/kinetic/lib -lroscpp -lrospack -lpthread -lrosconsole -lrosconsole_log4cxx -lrosconsole_backend_interface \
+        -lxmlrpcpp -lroscpp_serialization -lrostime  -lcpp_common  -lroslib -ltf  -lyaml-cpp -lkdl_conversions -lcv_bridge -limage_transport
+LIBS += /home/sky/space/opencv-3.4.1/build/lib/libopencv_core.so
+LIBS += /home/sky/space/opencv-3.4.1/build/lib/libopencv_highgui.so
+LIBS += /home/sky/space/opencv-3.4.1/build/lib/libopencv_imgcodecs.so
+
+
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
@@ -35,7 +48,12 @@ SOURCES += \
     common.cpp \
     greedy.cpp \
     ant_backup.cpp \
-    ant.cpp
+    ant.cpp \
+    map.cpp \
+    pathplanning.cpp \
+    camera.cpp \
+    camerathread.cpp \
+    robotthread.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -44,7 +62,12 @@ HEADERS += \
     modifydialog.h \
     robot.h \
     pixmapdialog.h \
-    common.h
+    common.h \
+    map.h \
+    pathplanning.h \
+    camera.h \
+    camerathread.h \
+    robotthread.h
 
 RESOURCES += \
     resource.qrc

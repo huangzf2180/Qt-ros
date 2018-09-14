@@ -8,7 +8,10 @@
 #include<QMenuBar>
 #include<QAction>
 #include<QToolBar>
+#include<ros/ros.h>
 #include"pixmapdialog.h"
+#include"camera.h"
+
 
 class MainWindow : public QMainWindow
 {
@@ -39,8 +42,13 @@ private:
     QAction *putLineAction;
     QAction *putRobotAction;
     QAction *buildPathAction;
+    QAction *inspectingAction;
+    //Camera
+    QToolBar *cameraTool;
+    QAction *readFrameAction;
 
     PixmapDialog *pixmapDialog;
+    Camera *cameraDialog;
 
 
 protected slots:
@@ -54,6 +62,8 @@ protected slots:
     void saveMap();
     void loadMap();
     void buildPath();
+    void inspecting();
+    void displayFrame();
 
 };
 

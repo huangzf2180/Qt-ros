@@ -3,6 +3,7 @@
 #include<QImage>
 #include "common.h"
 
+
 using std::cout;
 using std::endl;
 using std::vector;
@@ -119,6 +120,7 @@ vector<ObstacleScanned> getObstacleVec(QImage img)
         ObstacleScanned &obstacle = obstacleVec.at(i);
         for (vector<Point>::iterator it = obstacle.pointVec.begin(); it != obstacle.pointVec.end();)
         {
+            cout << obstacle.pointVec.size() << endl;
             if (
                     map_array[(*it).x][(*it).y] == 76 ||
                     map_array[(*it).x][(*it).y] == 1 &&
@@ -206,7 +208,6 @@ vector<Point> getObstacleScanPath(QImage img)
     //获取扫描路径
     for (int scan_radius = ROBOT_RADIUS - 1; scan_radius <= SCAN_PIXELS_RADIUS; scan_radius++)
     {
-        //        cout << "scan_radius = " << scan_radius << endl;
         for (vector<ObstacleScanned>::iterator it = obstacleVec.begin(); it != obstacleVec.end(); it++)
         {
             int id = (*it).id;
@@ -227,7 +228,7 @@ vector<Point> getObstacleScanPath(QImage img)
                             {
                                 for (y = j - 1 > 0 ? j - 1 : 0; y <= (j + 1 < height ? j + 1 : height - 1); y++)
                                 {
-                                    if (map_array[x][y] >= 1000 && map_array[x][y] != id || scan_radius == SCAN_PIXELS_RADIUS && id > 1000)
+                                    if (map_array[x][y] >= 1000 && map_array[x][y] != id || scan_radius == SCAN_PIXELS_RADIUS && id >= 1000)
                                     {
                                         Point point;
                                         point.x = i;
@@ -363,31 +364,44 @@ vector<Vertex> rebuildPath(vector<Vertex> unreachedVertexVec, vector<Vertex> vis
         int vertexId = (*it).id;
         vis[vertexId] = true;
     }
+    for(int i = 0; i < vertex_count; i++){
+        if(graph[curVertexId][i] >= 10e8){
+            vis[i] = true;
+        }
+    }
+
+    int vis_count = 0;
+    for(int i = 0; i < vertex_count; i++){
+        if(vis[i]) vis_count++;
+    }
+    if(vis_count == vertex_count)
+        return pathVec;
+
     pathVec.push_back(vertexVec.at(curVertexId));
 
     //make path by greedy
-//    while(count < vertex_count){
-//        double min_dis = 10e9;
-//        int index = -1;
-//        for (int i = 0; i < vertex_count; i++)
-//        {
-//            if(vis[i]) continue;
-//            if(graph[curVertexId][i] < min_dis){
-//                min_dis = graph[curVertexId][i];
-//                index = i;
-//            }
-//        }
+    //    while(count < vertex_count){
+    //        double min_dis = 10e9;
+    //        int index = -1;
+    //        for (int i = 0; i < vertex_count; i++)
+    //        {
+    //            if(vis[i]) continue;
+    //            if(graph[curVertexId][i] < min_dis){
+    //                min_dis = graph[curVertexId][i];
+    //                index = i;
+    //            }
+    //        }
 
-//        if(index == -1){
-//            cout << "rebuild pathVec size = " << pathVec.size() << endl;
-//            return pathVec;
-//        }
+    //        if(index == -1){
+    //            cout << "rebuild pathVec size = " << pathVec.size() << endl;
+    //            return pathVec;
+    //        }
 
-//        getCurPathVertex(curVertexId, index, middle_vertex, pathVec, vertexVec);
-//        curVertexId = index;
-//        vis[curVertexId] = true;
-//        count++;
-//    }
+    //        getCurPathVertex(curVertexId, index, middle_vertex, pathVec, vertexVec);
+    //        curVertexId = index;
+    //        vis[curVertexId] = true;
+    //        count++;
+    //    }
 
     //make path by ant
     vector<int> vec = makePathByAnt(graph, vis, curVertexId, vertex_count);
@@ -548,26 +562,26 @@ vector<Vertex> get_path(QImage img)
     }
 
     //makePathByGreedy
-//    vis[current_index] = true;
-//    pathVec.push_back(vertexVec.at(current_index));
+    //    vis[current_index] = true;
+    //    pathVec.push_back(vertexVec.at(current_index));
 
-//    while(count < vertex_count){
-//        double min_dis = 10e9;
-//        int index = -1;
-//        for (int i = 0; i < vertex_count; i++)
-//        {
-//            if(vis[i]) continue;
-//            if(graph[current_index][i] < min_dis){
-//                min_dis = graph[current_index][i];
-//                index = i;
-//            }
-//        }
+    //    while(count < vertex_count){
+    //        double min_dis = 10e9;
+    //        int index = -1;
+    //        for (int i = 0; i < vertex_count; i++)
+    //        {
+    //            if(vis[i]) continue;
+    //            if(graph[current_index][i] < min_dis){
+    //                min_dis = graph[current_index][i];
+    //                index = i;
+    //            }
+    //        }
 
-//        getCurPathVertex(current_index, index, middle_vertex, pathVec, vertexVec);
-//        current_index = index;
-//        vis[current_index] = true;
-//        count++;
-//    }
+    //        getCurPathVertex(current_index, index, middle_vertex, pathVec, vertexVec);
+    //        current_index = index;
+    //        vis[current_index] = true;
+    //        count++;
+    //    }
 
     delete graph;
 

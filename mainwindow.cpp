@@ -7,6 +7,9 @@ using std::cout;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    int argc = 0;
+    char *argv[] = {};
+    ros::init(argc, argv, "qt_camera");
     setWindowTitle(tr("QT"));
     paintArea = new PaintArea(this);
     setCentralWidget(paintArea);
@@ -15,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     createToolBars();
 
     pixmapDialog = NULL;
+
     //    QHBoxLayout *mainLayout =new QHBoxLayout(this);
     //    mainLayout->addWidget(paintArea);
     //    addDockWidget(paintArea);
@@ -51,9 +55,14 @@ void MainWindow::createActions(){
     connect(putLineAction, SIGNAL(triggered()), this, SLOT(setShapeLine()));
     putRobotAction = new QAction(tr("robot"), this);
     connect(putRobotAction, SIGNAL(triggered()), this, SLOT(setRobot()));
+    inspectingAction = new QAction(tr("inspecting"), this);
+    connect(inspectingAction, SIGNAL(triggered(bool)), this, SLOT(inspecting()));
     //Path Action
     buildPathAction = new QAction(tr("build path"), this);
     connect(buildPathAction, SIGNAL(triggered(bool)), this, SLOT(buildPath()));
+    //Camera Action
+    readFrameAction = new QAction(tr("camera"), this);
+    connect(readFrameAction, SIGNAL(triggered(bool)), this, SLOT(displayFrame()));
 }
 
 void MainWindow::createToolBars(){
@@ -68,9 +77,12 @@ void MainWindow::createToolBars(){
     obstacleTool->addAction(putLineAction);
     robotTool = addToolBar(tr("Robot"));
     robotTool->addAction(putRobotAction);
+    robotTool->addAction(inspectingAction);
     pathTool = addToolBar(tr("path"));
     pathTool->addAction(buildPathAction);
-
+    //Camera Tool
+    cameraTool = addToolBar(tr("Camera"));
+    cameraTool->addAction(readFrameAction);
 }
 
 //void MainWindow::setObstacle(Shape s){
@@ -106,16 +118,16 @@ void MainWindow::ShowShape(int value){
 }
 
 void MainWindow::showPixmapDialog(){
-    if(pixmapDialog == NULL){
-        pixmapDialog = new PixmapDialog(this);
-    }
+    pixmapDialog = new PixmapDialog(this);
     int res = pixmapDialog->exec();
     if(res == QDialog::Accepted){
         QSize size = paintArea->geometry().size();
         PaintArea::drawStartPos.setX((size.width() - PaintArea::pixmap_width) / 2);
         PaintArea::drawStartPos.setY((size.height() - PaintArea::pixmap_height) / 2);
+        paintArea->scale = 1.0;
         paintArea->drawPixmap(&(paintArea->pixmap), 1.0);
     }
+    delete pixmapDialog;
 }
 
 void MainWindow::saveMap(){
@@ -128,4 +140,18 @@ void MainWindow::loadMap(){
 
 void MainWindow::buildPath(){
     paintArea->testAvoidObstacle();
+}
+
+void MainWindow::inspecting(){
+    int a = 0;
+    ros::init(a, NULL, "aaa");
+    ros::NodeHandle nh;
+    ros::Duration(10).sleep();
+//    Robot* robot = Robot::getInstance();
+//    robot->inspecting();
+}
+
+void MainWindow::displayFrame(){
+    cameraDialog = new Camera(this);
+    cameraDialog->exec();
 }

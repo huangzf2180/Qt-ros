@@ -29,12 +29,13 @@ PaintArea::PaintArea(QWidget *parent) : QWidget(parent)
     setAutoFillBackground(true);
     setMinimumSize(pixmap_width * 2, pixmap_height * 2);
     setPen(QPen(Qt::black));
+    //    map = Map::getInstance();
+    //    map->setPixmap(&pixmap);
     isShapeSelected = false;
-    robot = NULL;
+    robot = Robot::getInstance();
     modifyAction = new QAction(tr("modify"), this);
     connect(modifyAction, SIGNAL(triggered()), this, SLOT(showModifyDialog()));
     contextMenu.addAction(modifyAction);
-    pixmap = NULL;
     modifyDialog = NULL;
     scale = 1.8;
     drawPixmap(&pixmap, 1);
@@ -110,9 +111,7 @@ void PaintArea::mousePressEvent(QMouseEvent *e){
             break;
         case Object_Robot:
         {
-            if(!robot){
-                robot = new Robot();
-            }
+            robot->setIsRobotAvailable(true);
             Pose pose;
             pose.x = (startPos.x() - drawStartPos.x()) / scale;
             pose.y = (startPos.y() - drawStartPos.y()) / scale;
@@ -370,10 +369,10 @@ void PaintArea::drawMap(QPixmap *pixmap, double scale){
     pen.setWidth(2);
     painter->setPen(pen);
     painter->setBrush(QBrush(qGray(0)));
-    painter->drawLine(0, 0, pixmap_width * scale, 0);
-    painter->drawLine(0, 0, 0, pixmap_height * scale);
-    painter->drawLine(0, pixmap_height * scale, pixmap_width * scale, pixmap_height * scale);
-    painter->drawLine(pixmap_width * scale, 0, pixmap_width * scale, pixmap_height * scale);
+    //    painter->drawLine(0, 0, pixmap_width * scale, 0);
+    //    painter->drawLine(0, 0, 0, pixmap_height * scale);
+    //    painter->drawLine(0, pixmap_height * scale, pixmap_width * scale, pixmap_height * scale);
+    //    painter->drawLine(pixmap_width * scale, 0, pixmap_width * scale, pixmap_height * scale);
     for(vector<Obstacle>::iterator it = obstacleVec.begin(); it != obstacleVec.end(); it++){
         if((*it).isSelected){
             pen.setColor(Qt::red);
@@ -419,54 +418,72 @@ void PaintArea::drawPath(QPixmap *pixmap, double scale){
 }
 
 void PaintArea::drawRobot(QPixmap *pixmap, double scale){
+    //    if(!robot->getIsRobotAvailable())
+    //        return;
+    //    QPainter *painter = new QPainter(pixmap);
+    //    if(robot){
+    //        //        cout << "robot pose" <<robot->getPose().x << " " << robot->getPose().y << endl;
+    //        pen.setColor(Qt::black);
+    //        painter->setPen(pen);
+    //        painter->setBrush(QBrush(Qt::NoBrush));
+    //        Pose pose = robot->getPose();
+    //        QPointF origin = QPointF(pose.x * scale, pose.y * scale);
+    //        double r_in = Robot::radius / PaintArea::resolution * scale;
+    //        double r_out = Robot::scan_radius / PaintArea::resolution * scale;
+    //        painter->drawEllipse(origin, r_in, r_in);
+    //        painter->setPen(QPen(Qt::green, 1, Qt::DashDotLine));
+    //        painter->drawEllipse(origin, r_out, r_out);
+    //        double start_x = pose.x;
+    //        double start_y = pose.y;
+    //        double yaw = pose.yaw;
+    //        //        double end_x = start_x + r_in * cos(yaw);
+    //        //        double end_y = start_y + r_in * sin(yaw);
+    //        painter->setPen(QPen(Qt::red, 2));
+    //        //        painter->drawLine(QPointF(start_x, start_y), QPointF(end_x, end_y));
+    //        painter->drawPoint(start_x, start_y);
+    //    }
+    //    delete painter;
+    Pose pose = robot->thread->getRobotPose(rotateMat);
+    if(pose.x < 0) return;
     QPainter *painter = new QPainter(pixmap);
-    if(robot){
-        //        cout << "robot pose" <<robot->getPose().x << " " << robot->getPose().y << endl;
-        pen.setColor(Qt::black);
-        painter->setPen(pen);
-        painter->setBrush(QBrush(Qt::NoBrush));
-        Pose pose = robot->getPose();
-        QPointF origin = QPointF(pose.x * scale, pose.y * scale);
-        double r_in = Robot::radius / PaintArea::resolution * scale;
-        double r_out = Robot::scan_radius / PaintArea::resolution * scale;
-        painter->drawEllipse(origin, r_in, r_in);
-        painter->setPen(QPen(Qt::green, 1, Qt::DashDotLine));
-        painter->drawEllipse(origin, r_out, r_out);
-        double start_x = pose.x;
-        double start_y = pose.y;
-        double yaw = pose.yaw;
-        //        double end_x = start_x + r_in * cos(yaw);
-        //        double end_y = start_y + r_in * sin(yaw);
-        painter->setPen(QPen(Qt::red, 2));
-        //        painter->drawLine(QPointF(start_x, start_y), QPointF(end_x, end_y));
-        painter->drawPoint(start_x, start_y);
-    }
+    painter->setPen(QPen(Qt::red, 2));
+    painter->drawPoint(pose.x, pose.y);
     delete painter;
 }
 
 void PaintArea::drawPixmap(QPixmap *pixmap, double scale){
 
-    QPixmap new_pixmap = QPixmap(PaintArea::pixmap_width * scale, PaintArea::pixmap_height * scale);
-    new_pixmap.fill(Qt::white);
-
+    //    QPixmap new_pixmap = QPixmap(PaintArea::pixmap_width * scale, PaintArea::pixmap_height * scale);
+    QPixmap new_pixmap = origin_pixmap;
+    //    QPixmap new_pixmap = *pixmap;
+    //    new_pixmap.fill(Qt::white);
     drawMap(&new_pixmap, scale);
     drawPath(&new_pixmap, scale);
     drawRobot(&new_pixmap, scale);
 
     //    QPixmap show_map((PaintArea::pixmap_width + ext_pixel) * scale, (PaintArea::pixmap_height + ext_pixel) * scale);
     //    painter->drawPixmap(ext_pixel / 2 * scale, ext_pixel / 2 * scale, new_pixmap);
-    *pixmap = new_pixmap;
+    this->pixmap = new_pixmap;
     update();
 }
 
 void PaintArea::loadMap(){
-    QString path = QFileDialog::getOpenFileName(this, "");
-    pixmap.load(path);
+    QString path = QFileDialog::getOpenFileName(this, "", "/home");
+    rotateMat = getMat(path);
+    origin_pixmap = QPixmap::fromImage(cvMat2QImage(rotateMat.mat));
+    pixmap_width = origin_pixmap.width();
+    pixmap_height = origin_pixmap.height();
+    drawStartPos.setX((size.width() - pixmap_width * scale) / 2);
+    drawStartPos.setY((size.height() - pixmap_height * scale) / 2);
+    pixmap = origin_pixmap;
+    timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(show_path()));
+    timer->start(200);
     update();
 }
 
 void PaintArea::saveMap(){
-    QString path = QFileDialog::getSaveFileName(this, "");
+    QString path = QFileDialog::getSaveFileName(this, "", "/home");
     QPixmap map;
     for(int i = 0; i< obstacleVec.size(); i++){
         obstacleVec.at(i).isSelected = false;
@@ -479,7 +496,8 @@ void PaintArea::saveMap(){
 }
 
 void PaintArea::show_path(){
-
+    drawPixmap(&origin_pixmap, 1);
+    return;
     Pose pose = robot->getPose();
     int x = pose.x;
     int y = pose.y;
@@ -512,7 +530,7 @@ void PaintArea::show_path(){
     delete localMap;
 
     if(robot){
-        robot->move(scale);
+        robot->move(1.0);
     }
 
     movePathVec.push_back(QPoint(robot->getPose().x, robot->getPose().y));
@@ -552,8 +570,7 @@ void PaintArea::build_path(){
 
 void PaintArea::testAvoidObstacle(){
     movePathVec.clear();
-    QPixmap pixmap = QPixmap(PaintArea::pixmap_width, PaintArea::pixmap_height);
-    pixmap.fill(Qt::white);
+    QPixmap pixmap = origin_pixmap;
     drawMap(&pixmap, 1);
     QImage img = pixmap.toImage();
     robot->setImg(img);
@@ -565,6 +582,7 @@ void PaintArea::testAvoidObstacle(){
     robot->setvisitedVec(vec);
     robot->setunreachedVertexVec(vec);
     cout << "start move" << endl;
+    show_path();
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(show_path()));
     timer->start(200);
@@ -585,13 +603,10 @@ void PaintArea::test(){
     img = new_pixmap.toImage();
     for(vector<ObstacleScanned>::iterator it = obstacleVec.begin(); it != obstacleVec.end(); it++){
         vector<Point> vec = (*it).pointVec;
-        cout << "pointVec.size() = " << vec.size() <<endl;
         for(int i = 0; i < vec.size(); i++){
             int x = vec.at(i).x;
             int y = vec.at(i).y;
             img.setPixel(x, y, 100);
-            //            cout << "setPixel: x = " << x << "y = " << y << endl;
-            //            cout << "getPixel: " << qGray(img.pixel(x, y)) << endl;
         }
     }
     this->pixmap = QPixmap::fromImage(img);
@@ -620,10 +635,10 @@ void PaintArea::test_2(){
 void PaintArea::paintEvent(QPaintEvent *){
 
     if(pixmap.width() == 0 && pixmap.height() == 0) return;
-    //    const int ext_pixel = 100;
     QPainter painter(this);
     painter.drawPixmap(QPointF(drawStartPos.x(), drawStartPos.y()), pixmap.scaled(pixmap_width * scale, pixmap_height * scale, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
+    //  draw arrow
     //            double arrow_lenght_ = 10;
     //            double arrow_degrees_ = 0.5;
     //            double x1 = end_x - arrow_lenght_ * cos(yaw - arrow_degrees_);
@@ -632,5 +647,4 @@ void PaintArea::paintEvent(QPaintEvent *){
     //            double y2 = end_y - arrow_lenght_ * sin(yaw + arrow_degrees_);
     //            p.drawLine(end_x, end_y, x1, y1);
     //            p.drawLine(end_x, end_y, x2, y2);
-
 }

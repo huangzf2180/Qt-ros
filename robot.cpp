@@ -1,7 +1,10 @@
 #include "robot.h"
 #include<QTimer>
 #include<iostream>
+#include<unistd.h>
 
+
+Robot* Robot::robot = NULL;
 
 Robot::Robot()
 {
@@ -9,6 +12,15 @@ Robot::Robot()
     scan_radius = 3;*/
     //    timer = new QTimer(this);
     //    vertexIndex = 0;
+    thread = new RobotThread();
+    thread->start();
+}
+
+Robot* Robot::getInstance(){
+    if(robot == NULL){
+        robot = new Robot();
+    }
+    return robot;
 }
 
 void Robot::setPose(Pose pose){
@@ -53,8 +65,16 @@ vector<Vertex> Robot::getunreachedVertexVec(){
     return unreachedVertexVec;
 }
 
+void Robot::setIsRobotAvailable(bool flag){
+    isRobotAvailable = flag;
+}
+
+bool Robot::getIsRobotAvailable(){
+    return isRobotAvailable;
+}
+
 void Robot::setImg(QImage img){
-//    cout << "setImg" << endl;
+    //    cout << "setImg" << endl;
 
     this->img = img;
     int width = img.width();
@@ -63,7 +83,7 @@ void Robot::setImg(QImage img){
     map_height = height;
     map = getVaildMap(img);
     Rect rect = getVaildMapRect(map, map_width, map_height);
-//    cout << "setImg end" << endl;
+    //    cout << "setImg end" << endl;
 }
 
 void Robot:: setLocalMap(int **localMap, int left, int top, int width, int height){
@@ -95,12 +115,7 @@ void Robot:: setLocalMap(int **localMap, int left, int top, int width, int heigh
             }
         }
     }
-    //    for(int i=top; i<top+height; i++){
-    //        for(int j=left; j<left+width;j++){
-    //            cout << (map[i][j] == 255 ? 1 : map[i][j]);
-    //        }
-    //        cout << endl;
-    //    }
+
 }
 
 int** Robot::getImg(){
@@ -113,27 +128,28 @@ void Robot::newObstacleScanned(int pathIndex){
         int y = pathVec.at(k).point.y;
         for(int i = x - Robot::scan_radius; i <= x + Robot::scan_radius; i++){
             for(int j = y - Robot::scan_radius; j <= y + Robot::scan_radius; j++){
-                if(pow(i - x, 2) + pow(j - y, 2) < Robot::radius * Robot::radius && qGray(img.pixel(i, j)) < 5);
+//                if(pow(i - x, 2) + pow(j - y, 2) < Robot::radius * Robot::radius && qGray(img.pixel(i, j)) < 5);
             }
         }
     }
 }
 
 bool Robot::isVertexVaild(int x, int y){
-//    cout << "isVertexVaild: x = " << x << "y = " << y << endl;
+    //    cout << "isVertexVaild: x = " << x << "y = " << y << endl;
     for(int i = x - ROBOT_RADIUS / 2; i <= x + ROBOT_RADIUS / 2; i++){
         for(int j = y - ROBOT_RADIUS / 2; j <= y + ROBOT_RADIUS / 2; j++){
-//            cout << (map[i][j] == 255 ? 1 : map[i][j]);
+            //            cout << (map[i][j] == 255 ? 1 : map[i][j]);
             if(pow(i - x, 2) + pow(j - y, 2) < ROBOT_RADIUS * ROBOT_RADIUS / 4 && (map[i][j] == 5 || map[i][j] == 0))
                 return false;
         }
-//        cout << endl;
+        //        cout << endl;
     }
     return true;
 }
 
 vector<Point> Robot::findNewPath(int x, int y){
     vector<Point> pointVec;
+    vector<Vertex> vec;
     Point startPoint(x, y);
     for(int i = pathIndex + 1; i < (pathIndex + 20 < pathVec.size() ? pathIndex + 20 : pathVec.size()); i++){
         int x = pathVec.at(i).point.x;
@@ -143,17 +159,24 @@ vector<Point> Robot::findNewPath(int x, int y){
             if(pointVec.size() == 0)
                 break;
             this->pathIndex = i;
+            for(vector<Vertex>::iterator it = vec.begin(); it != vec.end(); it++){
+                visitedVertexVec.push_back(*it);
+            }
             return pointVec;
         }
         else {
-            unreachedVertexVec.push_back(pathVec.at(i));
+            vec.push_back(pathVec.at(i));
         }
+    }
+
+    for(vector<Vertex>::iterator it = vec.begin(); it != vec.end(); it++){
+        unreachedVertexVec.push_back(*it);
     }
 
     return pointVec;
 }
 
-void Robot::move(double scale){
+void Robot::move(double){
     //    cout << "move" << endl;
     Pose pose;
     int cur_x = getPose().x;
@@ -176,42 +199,15 @@ void Robot::move(double scale){
         tempPathVec = findNewPath(cur_x, cur_y);
         if(tempPathVec.size() == 0)
         {
-            pathVec = rebuildPath(unreachedVertexVec, visitedVertexVec, pathVec.at(pathIndex - 1));
+            tempPathVec = AStar(map, map_width, map_height, Point(cur_x, cur_y), Point(pathVec.at(prePathIndex).point));
+            pathVec = rebuildPath(unreachedVertexVec, visitedVertexVec, pathVec.at(prePathIndex));
             pathIndex = 0;
+            if(pathVec.size() == 0)
+                return;
             v = pathVec.at(pathIndex);
         }
     }
-    /* if(tempPathVec.size() > 0){
-        int x = tempPathVec.at(0).x;
-        int y = tempPathVec.at(0).y;
-        if(!isVertexVaild(x, y)){
-            tempPathVec.clear();
-            tempPathVec = findNewPath(pathIndex);
-            if(tempPathVec.size() > 0){
-                pose.x = tempPathVec.at(0).x;
-                pose.y = tempPathVec.at(0).y;
-                pose.yaw = 0;
-                tempPathVec.erase(tempPathVec.begin());
-            }
-        }
-        else{
-            pose.x = tempPathVec.at(0).x;
-            pose.y = tempPathVec.at(0).y;
-            pose.yaw = 0;
-            tempPathVec.erase(tempPathVec.begin());
-        }
-    }
-    else if(!isVertexVaild(v.point.x, v.point.y)){
-        cout << "vertex error" << endl;
-//        tempPathVec.clear();
-//        tempPathVec = findNewPath(pathIndex);
-//        if(tempPathVec.size() > 0){
-//            pose.x = tempPathVec.at(0).x;
-//            pose.y = tempPathVec.at(0).y;
-//            pose.yaw = 0;
-//            tempPathVec.erase(tempPathVec.begin());
-//        }
-    }*/
+
     if(tempPathVec.size() > 0){
         pose.x = tempPathVec.at(0).x;
         pose.y = tempPathVec.at(0).y;
@@ -223,9 +219,19 @@ void Robot::move(double scale){
         pose.y = v.point.y;
         pose.yaw = 0;
         visitedVertexVec.push_back(v);
+        prePathIndex = pathIndex;
         if(pathIndex < pathVec.size())
             pathIndex++;
     }
-//    cout << "pose: " << pose.x << " " << pose.y << endl;
+    //    cout << "pose: " << pose.x << " " << pose.y << endl;
     setPose(pose);
 }
+
+void Robot::inspecting(){
+    if(!isRobotAvailable)
+        return;
+
+//    inspectingPathVec = pathPlanning.getOriPath();
+//    pathVec = inspectingPathVec;
+}
+
